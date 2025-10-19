@@ -33,17 +33,17 @@
 ### 环境变量
 - `GOOGLE_CLOUD_API_KEY`（或 `GCP_API_KEY` / `VISION_API_KEY`）: 仅有 API key 时走 REST。
 - `GOOGLE_VISION_API_ENDPOINT`: 自定义端点（如 EU 区域）。
-- `INSCRIBE_IDLE_SEND_S`: 空闲发送阈值（秒）。
-- `INSCRIBE_COOLDOWN_S`: 稳定句冷却（秒）。
+- `BACKEND_IDLE_SEND_S`: 空闲发送阈值（秒）。
+- `BACKEND_COOLDOWN_S`: 稳定句冷却（秒）。
 
 ### 运行方式
 - GUI:
 ```bash
-python inscribe/main.py
+python backend/main.py
 ```
 - Console（推荐对接前端）:
 ```bash
-python inscribe/main.py --console
+python backend/main.py --console
 ```
 
 - 如果需要结构化输出，打印处可切换为:

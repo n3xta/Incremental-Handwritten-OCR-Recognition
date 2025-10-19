@@ -16,6 +16,22 @@ import difflib
 
 BULLET_CHARS = "•·●○◦▪▫"  # common bullet symbols
 
+def _send_to_frontend(text: str, endpoint: str):
+    try:
+        import requests
+        print(f"[inscribe] posting to {endpoint}", flush=True)
+        resp = requests.post(endpoint, json={"type": "send", "text": text}, timeout=1.5)
+        print(f"[inscribe] post result {resp.status_code}", flush=True)
+        if resp.status_code >= 400:
+            try:
+                print(f"[inscribe] response: {resp.text}", flush=True)
+            except Exception:
+                pass
+    except Exception as e:
+        import traceback
+        print(f"[inscribe] post failed: {e}", file=sys.stderr)
+        traceback.print_exc()
+
 def _denoise_symbols(s: str) -> str:
     # Remove bullets and leading list markers
     s = re.sub(rf"^[\s\-\*{BULLET_CHARS}]+\s*", "", s)
@@ -423,9 +439,9 @@ class HandwritingRecognitionApp(QMainWindow):
         event.accept()
 
 
-def run_console_mode():
-    idle_timeout_s = float(os.getenv("INSCRIBE_IDLE_SEND_S", "2.5"))
-    cooldown_s = float(os.getenv("INSCRIBE_COOLDOWN_S", "6.0"))
+def run_console_mode(enable_send: bool = False, send_endpoint: str = None):
+    idle_timeout_s = float(os.getenv("BACKEND_IDLE_SEND_S", "2.5"))
+    cooldown_s = float(os.getenv("BACKEND_COOLDOWN_S", "6.0"))
     segment_buffer = []
     last_new_emit_ts = None  # use monotonic timestamps when we emit new stable text
     stabilizer = TextStabilizer(threshold=2.0, boost=1.0, decay=0.85, fuzzy=0.92, cooldown_s=cooldown_s)
@@ -561,6 +577,14 @@ def run_console_mode():
                 send_text = " ".join(agg).strip()
                 if send_text:
                     print(f"(send) {send_text}", flush=True)
+                    # Actually send to frontend if enabled
+                    if enable_send:
+                        target = (
+                            send_endpoint
+                            or os.getenv("BACKEND_SEND_ENDPOINT")
+                            or "http://127.0.0.1:5173/api/backend/send"
+                        )
+                        _send_to_frontend(send_text, target)
                 segment_buffer.clear()
 
             # Small sleep to reduce CPU usage
@@ -576,10 +600,12 @@ def run_console_mode():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Handwriting OCR")
     parser.add_argument("--console", action="store_true", help="Run in headless console mode (print recognized text)")
+    parser.add_argument("--send", action="store_true", help="Enable sending aggregated idle text to frontend")
+    parser.add_argument("--send-endpoint", type=str, default=None, help="Override frontend send endpoint (default env BACKEND_SEND_ENDPOINT or http://127.0.0.1:5173/api/backend/send)")
     args = parser.parse_args()
 
     if args.console:
-        sys.exit(run_console_mode())
+        sys.exit(run_console_mode(enable_send=bool(args.send or os.getenv("BACKEND_SEND_ENDPOINT")), send_endpoint=args.send_endpoint))
     else:
         app = QApplication(sys.argv)
         window = HandwritingRecognitionApp()
