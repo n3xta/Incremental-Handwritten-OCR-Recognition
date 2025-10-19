@@ -19,17 +19,17 @@ BULLET_CHARS = "•·●○◦▪▫"  # common bullet symbols
 def _send_to_frontend(text: str, endpoint: str):
     try:
         import requests
-        print(f"[inscribe] posting to {endpoint}", flush=True)
+        print(f"[backend] posting to {endpoint}", flush=True)
         resp = requests.post(endpoint, json={"type": "send", "text": text}, timeout=1.5)
-        print(f"[inscribe] post result {resp.status_code}", flush=True)
+        print(f"[backend] post result {resp.status_code}", flush=True)
         if resp.status_code >= 400:
             try:
-                print(f"[inscribe] response: {resp.text}", flush=True)
+                print(f"[backend] response: {resp.text}", flush=True)
             except Exception:
                 pass
     except Exception as e:
         import traceback
-        print(f"[inscribe] post failed: {e}", file=sys.stderr)
+        print(f"[backend] post failed: {e}", file=sys.stderr)
         traceback.print_exc()
 
 def _denoise_symbols(s: str) -> str:
@@ -302,7 +302,7 @@ class HandwritingRecognitionApp(QMainWindow):
         self.central_widget.setLayout(self.main_layout)
 
         # Video capture
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(5)
 
         # setting timer for video feed...
         self.timer = QTimer(self)
@@ -466,7 +466,7 @@ def run_console_mode(enable_send: bool = False, send_endpoint: str = None):
     last_ocr_ts = time.monotonic() - ocr_interval  # so first loop triggers immediately
     # last_text removed in favor of stabilizer-only output
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(5)
     if not cap.isOpened():
         print("Failed to open camera", file=sys.stderr)
         return 1
